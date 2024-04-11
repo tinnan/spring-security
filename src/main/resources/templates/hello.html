@@ -6,6 +6,25 @@
 </head>
 <body>
 <h1 th:inline="text">Hello <span th:remove="tag" sec:authentication="name">thymeleaf</span>!</h1>
+<form th:action="@{/hello/create-api-key}" method="post">
+    <input type="submit" value="Create API Key"/>
+</form>
+<table>
+    <thead>
+        <tr>
+            <th>API Key</th>
+            <th>Active?</th>
+            <th>Test</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr th:each="api: ${apiKeys}">
+            <td th:text="${api.apiKey}"></td>
+            <td th:text="${api.active}"></td>
+            <td><a th:href="@{/request(apiKeyParam=${api.apiKey})}">test</a></td>
+        </tr>
+    </tbody>
+</table>
 <form th:action="@{/logout}" method="post">
     <input type="submit" value="Sign Out"/>
 </form>
