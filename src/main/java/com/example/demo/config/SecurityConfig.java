@@ -52,7 +52,7 @@ public class SecurityConfig {
         http.securityMatcher("/**")
                 .securityMatchers(matcher -> matcher.requestMatchers(new NegatedRequestMatcher(new AntPathRequestMatcher("/api/**"))))
                 .authorizeHttpRequests(requests -> requests.requestMatchers("/",
-                                "/home", "/js/**")
+                                "/home", "/static/**")
                         .permitAll()
                         .requestMatchers(PathRequest.toH2Console())
                         .permitAll()
