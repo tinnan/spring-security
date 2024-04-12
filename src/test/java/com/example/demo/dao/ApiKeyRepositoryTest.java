@@ -9,11 +9,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 
 // Using @SpringBootTest for auto-configuring security user details schema.
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+@ActiveProfiles("test")
 class ApiKeyRepositoryTest {
     private static final String TEST_API_KEY = "1299675c-ed5a-426b-8d1e-1a67f865c35d";
     private static final String TEST_USERNAME = "test";
