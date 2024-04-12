@@ -3,7 +3,6 @@ package com.example.demo.config;
 import com.example.demo.config.filter.ApiKeyAuthenticationFilter;
 import com.example.demo.service.AuthenticationService;
 import lombok.extern.slf4j.Slf4j;
-import org.h2.tools.Server;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
@@ -24,7 +23,6 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 
 import javax.sql.DataSource;
-import java.sql.SQLException;
 
 @Configuration
 @EnableWebSecurity
@@ -88,12 +86,5 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    @Bean(initMethod = "start", destroyMethod = "stop")
-    public Server inMemoryH2DatabaseaServer() throws SQLException {
-        // org.h2.tools.Server will be available in classpath when dependency scope is set to "compile".
-        // To connect to the H2 database, Set "jdbc:h2:tcp://localhost:9090/mem:mydb" in database URL.
-        return Server.createTcpServer("-tcp", "-tcpAllowOthers", "-tcpPort", "9090");
     }
 }
