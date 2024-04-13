@@ -5,7 +5,7 @@ import com.example.demo.service.AuthenticationService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,14 +22,14 @@ public class HelloController {
     private final AuthenticationService authenticationService;
 
     @GetMapping
-    public String init(Model model, @AuthenticationPrincipal User user) {
+    public String init(Model model, @AuthenticationPrincipal UserDetails user) {
         List<UserApiKey> userApiKeys = authenticationService.listApiKeys(user.getUsername());
         model.addAttribute("apiKeys", userApiKeys);
         return "hello";
     }
 
     @PostMapping("/create-api-key")
-    public String createToken(Model model, @AuthenticationPrincipal User user) {
+    public String createToken(Model model, @AuthenticationPrincipal UserDetails user) {
         List<UserApiKey> userApiKeys = authenticationService.createApiKey(user.getUsername());
         model.addAttribute("apiKeys", userApiKeys);
         return "hello";

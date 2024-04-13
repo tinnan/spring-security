@@ -1,20 +1,24 @@
 package com.example.demo.service;
 
-import com.example.demo.dao.ApiKey;
-import com.example.demo.dao.ApiKeyRepository;
 import com.example.demo.dao.UserApiKeyRepository;
 import com.example.demo.domain.ApiKeyAuthentication;
 import com.example.demo.domain.UserApiKey;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ldap.core.AttributesMapper;
+import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 
+import javax.naming.NamingException;
+import javax.naming.directory.Attributes;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -22,9 +26,8 @@ import java.util.UUID;
 @Slf4j
 public class AuthenticationService {
     private static final String AUTH_TOKEN_HEADER_NAME = "X-API-KEY";
-
-    private final ApiKeyRepository authenticationRepository;
     private final UserApiKeyRepository userApiKeyRepository;
+    private final LdapTemplate ldapTemplate;
 
     @Transactional
     public List<UserApiKey> createApiKey(String username) {
@@ -48,30 +51,42 @@ public class AuthenticationService {
     }
 
     public Authentication getAuthentication(HttpServletRequest request) {
+        if (log.isDebugEnabled()) {
+            log.debug("Authenticating API key.");
+        }
         String apiKey = request.getHeader(AUTH_TOKEN_HEADER_NAME);
         if (apiKey == null) {
-            log.info("Missing Api key header.");
+            log.error("Missing Api key header.");
             throw new BadCredentialsException("Invalid API Key");
         }
-        List<ApiKey> authentications = authenticationRepository.findByApiKey(apiKey);
-        if (authentications.isEmpty()) {
-            log.info("Not found active API key.");
+        Optional<UserApiKey> userApiKey = userApiKeyRepository.findById(apiKey);
+        if (userApiKey.isEmpty() || !userApiKey.get()
+                .isActive()) {
+            log.error("Not found active API key.");
             throw new BadCredentialsException("Invalid API Key");
         }
-        if (!authentications.get(0)
-                .isUserEnabled()) {
-            log.info("API key owner account status is invalid.");
-            throw new BadCredentialsException("Invalid API Key");
-        }
-
-        String username = authentications.get(0)
+        String username = userApiKey.get()
                 .getUsername();
-        boolean userEnabled = authentications.get(0)
-                .isUserEnabled();
-        List<SimpleGrantedAuthority> grantedAuthorities =
-                authentications.stream()
-                        .map(auth -> new SimpleGrantedAuthority(auth.getAuthority()))
-                        .toList();
-        return new ApiKeyAuthentication(username, userEnabled, grantedAuthorities);
+        if (log.isDebugEnabled()) {
+            log.debug("Searching LDAP user authorities.");
+        }
+        // Is there a more graceful way to set base suffix?
+        //    -> Yes! Set in application.properties: spring.ldap.base=<base suffix>
+        // in this case - spring.ldap.base=dc=example,dc=com
+        List<SimpleGrantedAuthority> grantedAuthorities = ldapTemplate.search("ou=groups", "(objectclass=groupOfUniqueNames)",
+                new GrantedAuthorityAttributesMapper());
+        if (log.isDebugEnabled()) {
+            log.debug("Granted Authorities: {}", grantedAuthorities);
+        }
+        return new ApiKeyAuthentication(username, true, grantedAuthorities);
+    }
+
+    private static class GrantedAuthorityAttributesMapper implements AttributesMapper<SimpleGrantedAuthority> {
+        @Override
+        public SimpleGrantedAuthority mapFromAttributes(Attributes attributes) throws NamingException {
+            String authority = (String) attributes.get("cn")
+                    .get();
+            return new SimpleGrantedAuthority("ROLE_" + authority.toUpperCase());
+        }
     }
 }
